@@ -472,12 +472,11 @@ const playAudioBlobCallback = (callbackBlob) => {
                     console.log("✅ TTS voice changed to:", newVoice);
                     }}
                 >
+                    <option value="MaoriTTSW">WM-TTS (WMAI Research)</option>
+                    <option value="Puwhakahua">Puwhakahua</option>
                     <option value="PapaReo">PapaReo</option>
-            <option value="MaoriTTSK">WM-TTS (KingsleyEng)</option>
-	    <option value="MaoriTTSW">WM-TTS (WMAI Research)</option>
-	    <option value="fake">Fake</option>
-	    <option value="Piper">Piper</option>
-	    <option value="Puwhakahua">Puwhakahua</option>
+                    <option value="MaoriTTSK">WM-TTS (KingsleyEng)</option>
+	   	    <option value="Piper">Piper (Local)</option>
                 </select>
             </div>
 
