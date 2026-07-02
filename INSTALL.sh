@@ -18,3 +18,15 @@ echo "***Install pm2 into nodejs 20"
 npm install -g pm2
 
 pm2 update
+
+echo "*** Install packages for the current project"
+npm install
+
+echo "*** Please create .env and set the relevant keys. See README-KEYS.md"
+
+echo "*** If you want a local Piper, run the following:"
+
+echo "> wget -O piper_linux_x86_64.tar.gz   https://github.com/rhasspy/piper/releases/download/2023.11.14-2/piper_linux_x86_64.tar.gz"
+echo "> tar xzvf piper_linux_x86_64.tar.gz"
+
+
