@@ -105,25 +105,31 @@ const InterfaceText = {
     },
     
     
+    // _LLMSays_: {
+	// "en": "ChatGPT says",
+	// "mi": "ki tā ChatGPT"
+	// //"en": "Claude says",
+	// //"mi": "ki tā Claude"
+    // }
+
     _LLMSays_: {
-	"en": "ChatGPT says",
-	"mi": "ki tā ChatGPT"
-	//"en": "Claude says",
-	//"mi": "ki tā Claude"
-    }
+        "en": "",
+        "mi": ""
+      }
 };
 
-//const DefaultLang = "mi";
-const DefaultLang = "en";
+const DefaultLang = "mi";
+//const DefaultLang = "en";
 
 
 const DefaultConfigOptions = {
-    speechToText : "OpenAI",
-    chatLLM      : "OpenAI",
+    //speechToText : "OpenAI",
+    //chatLLM      : "OpenAI",
     //textToSpeech : "OpenAI",
-    //speechToText : "PapaReo",
-    //chatLLM      : "Claude",
-    textToSpeech : "PapaReo",
+    speechToText : "PapaReo",
+    chatLLM      : "Claude",
+    //textToSpeech : "PapaReo",
+    textToSpeech : "MaoriTTSW",
 
     lang: DefaultLang,
     interfaceText: InterfaceText
@@ -136,6 +142,9 @@ export default function Home()
 {
     //const [ConfigOptions, setConfigOptions] = useState(DefaultConfigOptions);
     const [Lang,          setLang         ] = useState(DefaultLang);
+
+    // test for swapping voices
+    const [selectedVoice, setSelectedVoice] = useState(DefaultConfigOptions.textToSpeech);
     
     const [interfaceMode,   setInterfaceMode]   = useState(InterfaceModeEnum.inactive);
     const [microphoneMode,  setMicrophoneMode]  = useState(MicrophoneModeEnum.inactive);
@@ -337,6 +346,37 @@ export default function Home()
 
     };
 
+{/*
+// temp to determine if STT API not working
+const playAudioBlobCallback = (callbackBlob) => {
+  console.log("[page.js] playAudioBlobCallback()");
+
+  // 🔊 TEMP TEST: play via a plain <audio> element
+  try {
+    const testUrl = URL.createObjectURL(callbackBlob);
+    const audio = new Audio(testUrl);
+    audio.play().then(() => {
+      console.log("✅ Raw Audio() play() started successfully");
+    }).catch(err => {
+      console.error("❌ Raw Audio() play() failed:", err);
+    });
+  } catch (e) {
+    console.error("Error creating Audio() from blob:", e);
+  }
+
+  // Existing MediaPlayer path
+  if (audioContext === null) {
+    console.log("Initializing AudioContext");
+    setAudioContext(new AudioContext());
+  }
+  console.log("**** page::playAudioBlobCallback(), away to setBlob()");
+  setBlob(callbackBlob);
+};
+*/}
+
+
+
+
     const updateMessagesCallback = (returnedMessagePair) => {
         console.log("returnedMessagePair = " + JSON.stringify(returnedMessagePair));
         const userMessage        = returnedMessagePair.userMessage;
@@ -393,7 +433,56 @@ export default function Home()
                          style={{width: interfaceWidth+'px', color: 'black', borderColorXX: '#176593'}} >
 	              {statusText}
 	            </div>
-	          </div>
+	          </div> 
+
+
+ 	    {/* language selector  */}
+            <div
+                style={{
+                    margin: "1rem 0",
+                    width: interfaceWidth + "px",
+                    textAlign: "center",
+                }}
+                >
+                <label htmlFor="langSelect">Reo atanga / Interface language:&nbsp;</label>
+                <select
+                    id="langSelect"
+                    value={Lang}
+                    onChange={(e) => {
+                    const newLang = e.target.value;
+                    setLang(newLang);
+                    console.log("✅ Interface language changed to:", newLang);
+                    }}
+                >
+                    <option value="mi">Māori</option>
+                    <option value="en">English</option>
+                </select>
+            </div> 
+
+            {/* TTS Selector*/}
+            <div style={{ margin: "1rem 0" }}>
+                <label htmlFor="voiceSelect">TTS Voice:&nbsp;</label>
+                <select
+                    id="voiceSelect"
+                    value={selectedVoice}
+                    onChange={(e) => {
+                    const newVoice = e.target.value;
+                    setSelectedVoice(newVoice); // ✅ updates UI
+                    configOptionsRef.current.textToSpeech = newVoice; // ✅ used in API request
+                    console.log("✅ TTS voice changed to:", newVoice);
+                    }}
+                >
+                    <option value="PapaReo">PapaReo</option>
+            <option value="MaoriTTSK">WM-TTS (KingsleyEng)</option>
+	    <option value="MaoriTTSW">WM-TTS (WMAI Research)</option>
+	    <option value="fake">Fake</option>
+	    <option value="Piper">Piper</option>
+	    <option value="Puwhakahua">Puwhakahua</option>
+                </select>
+            </div>
+
+              
+
 	          <Microphone
 	            lang={Lang}
 	            configOptionsRef={configOptionsRef}

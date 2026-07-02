@@ -240,7 +240,12 @@ export const useRecordVoice = (props) => {
 	    
 		//console.log("synthesizedAudioFilename: " + synthesizedAudioFilename);
 
-		const synthesizedAudioURL = synthesizedAudioFilename.replace(/public/,"")
+		// const synthesizedAudioURL = synthesizedAudioFilename.replace(/public/,"")
+
+		const synthesizedAudioURL = synthesizedAudioFilename.startsWith("/tmp/")
+			? synthesizedAudioFilename
+			: synthesizedAudioFilename.replace(/public/, "");
+
 		
 		const synthesizedAudioBlob = await fetch(synthesizedAudioURL)
 		      .then(response => response.blob());
@@ -297,7 +302,8 @@ export const useRecordVoice = (props) => {
 		//setText(props.configOptionsRef.current.chatLLM + " says: " + chatResponseText); // ****
 		const lang = props.configOptionsRef.current.lang;
 		const lang_llm_says = props.configOptionsRef.current.interfaceText["_LLMSays_"][lang];
-		setText(lang_llm_says + ": " + chatResponseText); // ****
+		//setText(lang_llm_says + ": " + chatResponseText); // ****
+		setText(lang_llm_says + "" + chatResponseText); // ****
 		
 		getSynthesizedSpeech(chatResponseText);		
 	    }
@@ -359,7 +365,13 @@ export const useRecordVoice = (props) => {
 	      // Do the following line if you want the audio to be played
 	      //props.pageAudioFilenameCallback(audioFilename,blob,mimeType);
 	      //props.playAudioBlobCallback(blob);
-	      
+	     
+
+		//  TEMP: ignore STT result and send a fixed prompt to Claude
+     		//  const testPrompt =
+	        // "whakahoki kupu poto";
+    		//  getPromptResponse(testPrompt);
+ 
 	      // Now ask ChatLLM to respond to the recognised text
 	      getPromptResponse(text);
 	  }
