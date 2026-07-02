@@ -353,10 +353,10 @@ async function MAORI_TTS_HUGGING_FACE(body, hfUrl, hfToken) {
 async function POST_MAORI_TTS_WMAI_RESEARCH(body) {
 
     // 🔑 Hugging Face token from env
-    const hfToken = env.HF_TOKEN_KJDON_WMAI_RESEARCH;
+    const hfToken = env.HF_TOKEN_WMAI_RESEARCH;
     if (!hfToken) {
-	console.error("[MaoriTTS] HF_TOKEN_KJDON_WMMAI_RESEARCH is missing from env");
-	return NextResponse.json({ error: "missing_hf_token kjdon wmai_research" }, { status: 500 });
+	console.error("[MaoriTTS] HF_TOKEN_WMMAI_RESEARCH is missing from env");
+	return NextResponse.json({ error: "missing_hf_token wmai_research" }, { status: 500 });
     }
 
     return MAORI_TTS_HUGGING_FACE(body, wmai_research_url, hfToken);
@@ -368,8 +368,8 @@ async function POST_MAORI_TTS_KINGSLEYENG(body) {
     // 🔑 Hugging Face token from env
     const hfToken = env.HF_TOKEN_KINGSLEYENG;
     if (!hfToken) {
-	console.error("[MaoriTTS] HF_TOKEN_KJDON_WMMAI_RESEARCH is missing from env");
-	return NextResponse.json({ error: "missing_hf_token kjdon wmai_research" }, { status: 500 });
+	console.error("[MaoriTTS] HF_TOKEN_KINGSLEYENG is missing from env");
+	return NextResponse.json({ error: "missing_hf_token kingsleyeng" }, { status: 500 });
     }
 
     return MAORI_TTS_HUGGING_FACE(body, kingsleyeng_url, hfToken);
