@@ -175,13 +175,17 @@ export async function POST(req)
 // Also:
 //   https://nextjs.org/docs/pages/building-your-application/routing/api-routes#custom-config
 
-export const config = {
-  api: {
-      // Disables call to body parsing module, to prevent the
-      // double-parsing issue that causes one to get stuck
-      bodyParser: false
-      
-      // Or for a version that is on for 'npm run dev' but not production mode:
-      // bodyParser: process.env.NODE_ENV !== 'production'      
-  }
-};
+// This is not used for the current App Router style
+// we no longer have double parsing issue.
+// but what about the bad gateway error? may need to do something different?
+
+//export const config = {
+//  api: {
+//      // Disables call to body parsing module, to prevent the
+//      // double-parsing issue that causes one to get stuck
+//      bodyParser: false
+//      
+//      // Or for a version that is on for 'npm run dev' but not production mode:
+//      // bodyParser: process.env.NODE_ENV !== 'production'      
+//  }
+//};
