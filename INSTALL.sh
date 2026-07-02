@@ -29,4 +29,7 @@ echo "*** If you want a local Piper, run the following:"
 echo "> wget -O piper_linux_x86_64.tar.gz   https://github.com/rhasspy/piper/releases/download/2023.11.14-2/piper_linux_x86_64.tar.gz"
 echo "> tar xzvf piper_linux_x86_64.tar.gz"
 
+echo " This will also need the onnx model to be put into a models folder"
+echo " e.g. models/model.onnx"
+echo "            /model.onnx.json"
 
