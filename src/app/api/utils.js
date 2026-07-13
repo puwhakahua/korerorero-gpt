@@ -1,5 +1,6 @@
-
 import fs from "fs";
+import path from "path";
+import os from "os";
 
 import { Readable } from "stream";
 //const { finished } = require('stream/promises');
@@ -107,7 +108,7 @@ async function postPapaReoSynthesize(text)
     // speed - Any valid number to speed up or slow the voice
     // response_type - Either 'stream' it directly or return a short-lived 'url'
     /// voice_id - Choose the voice id: pita
-
+    console.log("in post papareo synthesis");
     const post_data = {
 	"text": text,
 	"speed": 1,
@@ -115,9 +116,9 @@ async function postPapaReoSynthesize(text)
 	"voice_id": "pita"
     };
 
-    const post_data_str = JSON.stringify(post_data);
+    //const post_data_str = JSON.stringify(post_data);
     
-    var options = {
+/*    var options = {
 	host: 'api.papareo.io',
 	port: 443,
 	path: '/reo/synthesize',
@@ -133,9 +134,99 @@ async function postPapaReoSynthesize(text)
     const response_data = await doRequest(options, post_data_str);
 
     return response_data.audio_url;
+*/
+
+    const res = await fetch("https://api.papareo.io/reo/synthesize", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      Authorization: "Token " + env.PAPAREO_API_KEY,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(post_data),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Papareo error ${res.status}: ${errText}`);
+  }
+
+  const data = await res.json();
+
+  return data.audio_url;
 }
 
+// using fetch here instead of teh anthopic sdk means it will use
+// a global dispatcher if there is one
+// needed if you are behind a proxy
+async function postAnthropicMessage(model,messages, max_tokens=1024) {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": env.ANTHROPIC_API_KEY,
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      model,
+      messages,
+      max_tokens,
+    }),
+  });
 
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Anthropic error ${res.status}: ${errText}`);
+  }
+
+  return await res.json();
+}  
+
+async function postOpenAIMessage(model, messages, temperature=0) {
+
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+	method: "POST",
+	headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+	},
+	body: JSON.stringify({
+            model,
+            messages,
+            temperature,
+	}),
+    });
+
+    
+    if (!response.ok) {
+	const errorText = await response.text();
+	throw new Error(`OpenAI API error ${response.status}: ${errorText}`);
+    }
+    return await response.json();
+}
+
+async function postOpenRouterMessage(model, messages, temperature=0) {
+
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+	method: "POST",
+	headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+	},
+	body: JSON.stringify({
+            model,
+            messages,
+            temperature,
+	}),
+    });
+
+    
+    if (!response.ok) {
+	const errorText = await response.text();
+	throw new Error(`OpenRouter API error ${response.status}: ${errorText}`);
+    }
+    return await response.json();
+}
 
 async function downloadURL(url,ofilename)
 {
@@ -155,4 +246,11 @@ async function downloadURL(url,ofilename)
 }
 
 
-export { sleep, postPapaReoTranscribe, postPapaReoSynthesize, downloadURL };
+export { sleep, postPapaReoTranscribe, postPapaReoSynthesize, postAnthropicMessage, postOpenAIMessage, postOpenRouterMessage, downloadURL };
+
+export const STORE_PATH = process.env.FS_STORE_PATH || path.join(os.tmpdir(), "korerorero-gpt-audio");
+
+// ensure directory exists
+if (!fs.existsSync(STORE_PATH)) {
+  fs.mkdirSync(STORE_PATH, { recursive: true });
+}
