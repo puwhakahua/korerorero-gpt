@@ -65,6 +65,19 @@ p.textmessage {
     display: none;
 }
 
+.listenButton {
+  padding: 6px 12px;
+  background-color: #2d6cdf;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.listenButton:hover {
+  background-color: #1f56b3;
+}
 /*
 .audio-spectrum-visualizer {
     background-color: white;
