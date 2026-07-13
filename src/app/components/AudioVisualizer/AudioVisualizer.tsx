@@ -59,9 +59,7 @@ interface Props {
   ref?: React.ForwardedRef<HTMLCanvasElement>;
 }
 
-const AudioVisualizer: ForwardRefExoticComponent<
-  Props & RefAttributes<HTMLCanvasElement>
-> = forwardRef(
+const AudioVisualizer = forwardRef<HTMLCanvasElement,Props>(
   (
     {
       blob,

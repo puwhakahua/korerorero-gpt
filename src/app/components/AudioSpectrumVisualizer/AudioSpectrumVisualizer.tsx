@@ -16,8 +16,9 @@ import { calculateBarData, draw } from "../LiveAudioVisualizer/utils";
 
 class MediaPlayer {
     public state: string;
+    public onstopplaying: () => void;
     
-    public constructor(onstopcallback) {
+    public constructor(onstopcallback: () => void) {
         //console.log("**** !! MediaPlayer constructor called, setting state to 'inactive'");
         this.state = "inactive";
         
@@ -40,7 +41,7 @@ export interface Props {
    *                 in the interface, which is why it is generated externally and passed in
    */
 
-  mediaPlayer: MediaPlayer;
+  mediaPlayer: React.RefObject<MediaPlayer | null>;
   blob: Blob;
   audioContext: AudioContext;
     
@@ -128,7 +129,7 @@ const AudioSpectrumVisualizer: (props: Props) => ReactElement = ({
   updateStatusCallback = null,  
 }: Props) => {
   const [analyser   , setAnalyser   ] = useState<AnalyserNode>();
-  const [audioSource, setAudioSource] = useState<SourceNode>();
+  const [audioSource, setAudioSource] = useState<AudioBufferSourceNode>();
 
   const [duration , setDuration ] = useState<number>(0.0);
   const [startTime, setStartTime] = useState<number>(0.0);
@@ -179,11 +180,11 @@ const AudioSpectrumVisualizer: (props: Props) => ReactElement = ({
           */
           
           console.log("Displaying default frequency values of zeros");          
-          const dataZeros = Array.from({ length: Math.floor(fftSize/2) }, () => ({
+/*          const dataZeros = Array.from({ length: Math.floor(fftSize/2) }, () => ({
               max: 0,
               min: 0,
-          }));
-	  const data = new Uint8Array(dataZeros);	  
+          }));*/
+	  const data = new Uint8Array(Math.floor(fftSize/2));	  
 	  processFrequencyData(data);
           
 	  return;
@@ -266,11 +267,11 @@ const AudioSpectrumVisualizer: (props: Props) => ReactElement = ({
       //console.log(`useEffect() [analyser, mediaPlayer.state]: analyser defined = ${analyser ? 1 : 0}, mediaPlayer.state = ${mediaPlayer.current ? mediaPlayer.current.state : null}`);
       if (!analyser) {
           console.log("Displaying default frequency values of zeros");
-          const dataZeros = Array.from({ length: Math.floor(fftSize/2) }, () => ({
+          /*const dataZeros = Array.from({ length: Math.floor(fftSize/2) }, () => ({
               max: 0,
               min: 0,
-          }));
-	  const data = new Uint8Array(dataZeros);	  
+          }));*/
+	  const data = new Uint8Array(Math.floor(fftSize/2));	  
 	  processFrequencyData(data);
 
           return
@@ -300,7 +301,7 @@ const AudioSpectrumVisualizer: (props: Props) => ReactElement = ({
             // AudioContext coming out of pause-state
             // => Need to recalculate the startTime, to take account of pause,            
             //    so the progress calculation remains correct
-            const pause_duration = audioContext.currenTime - pauseTime;
+            const pause_duration = audioContext.currentTime - pauseTime;
             const pause_compensated_start_time = startTime + pause_duration;
             setStartTime(pause_compensated_start_time);
             audioContext.resume();
