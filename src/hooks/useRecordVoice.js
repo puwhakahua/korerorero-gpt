@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { blobToBase64 } from "@/utils/blobToBase64"; // **** remove util file ??
 import { getPeakLevel } from "@/utils/createMediaStream";
+import { getTextFromAudio, getChatResponse, getSynthesizedSpeech } from "@/lib/conversation"; 
 
 export const useRecordVoice = (props) => {
     const [text, setText]  = useState("");
@@ -23,6 +24,14 @@ export const useRecordVoice = (props) => {
     const sourceNode   = useRef(null);
     const analyzerNode = useRef(null);
 
+    const conversation_context = {
+	configOptionsRef : props.configOptionsRef,
+	updateStatusCallback : props.updateStatusCallback,
+	updateMessagesCallback : props.updateMessagesCallback,
+	messagesRef : props.messagesRef,
+	setText,
+	
+    };
     // OpenAI supported audio formats (as of 28 April 2024):
     //   ['flac', 'm4a', 'mp3', 'mp4', 'mpeg', 'mpga', 'oga', 'ogg', 'wav', 'webm']"
     //
@@ -118,17 +127,27 @@ export const useRecordVoice = (props) => {
 		    chunks.current.push(ev.data);
 		};
 		
-		mediaRecorder.onstop = () => {
+		mediaRecorder.onstop = async () => {
 		    console.log("mediaRecorder.onstop()");
 		    const audioMimeType = mediaRecorder.mimeType;
 		    console.log("audioMimeType = " + audioMimeType);
 		    setAudioMimeType(audioMimeType);      
-		    
 		    const audioBlob = new Blob(chunks.current, { type: audioMimeType });
 		    console.log("Converting chunks to blob:");
 		    console.log(audioBlob);
-		    blobToBase64(audioBlob, getText);
+		    // Do the following line if you want the audio to be played                                              
+		    //props.pageAudioFilenameCallback(audioFilename,blob,mimeType);                                          
+		    //props.playAudioBlobCallback(blob);                                                                     
 
+
+		    const base64data = await blobToBase64(audioBlob);
+		    const new_text = await getTextFromAudio(conversation_context,audioBlob,base64data,audioBlob.type); //blobToBase64(audioBlob, getText);
+
+		    const text_answer = await getChatResponse(conversation_context, new_text);
+		    const synthesized_audio_blob = await getSynthesizedSpeech(conversation_context, text_answer);
+		    props.playAudioBlobCallback(synthesized_audio_blob);
+		    
+		    
 		    // ****
 		    /*
 		    const processAudioBlob = async () => {
@@ -207,180 +226,6 @@ export const useRecordVoice = (props) => {
     */
     
 
-    const getSynthesizedSpeech = async (text) => {
-	//props.updateStatusCallback(props.configOptionsRef.current.chatLLM + "'s response being synthesized as audio ...");
-	props.updateStatusCallback("_statusTextToSpeechProcessing_");
-	
-	try {
-	    const response = await fetch("/api/textToSpeech", {
-		method: "POST",
-		headers: {
-		    "Content-Type": "application/json",
-		},
-		body: JSON.stringify({
-		    text: text,
-		    configOptions: props.configOptionsRef.current
-		}),
-	    }).then((res) => {
-		let json_str = null;
-		if (res.status == 200) {
-		    json_str = res.json();
-		}
-		return json_str;
-	    });
-
-	    
-	    if (response != null) {
-		// The following could be more streamlined if the server returned the blob
-		// for the audio directly.  As the returned response is in JSON, this in
-		// turn would need the blob to be encoded in something like base64
-		
-		const synthesizedAudioFilename = response.synthesizedAudioFilename;
-		const synthesizedAudioMimeType = response.synthesizedAudioMimeType;
-	    
-		//console.log("synthesizedAudioFilename: " + synthesizedAudioFilename);
-
-		// const synthesizedAudioURL = synthesizedAudioFilename.replace(/public/,"")
-
-		const synthesizedAudioURL = synthesizedAudioFilename.startsWith("/tmp/")
-			? synthesizedAudioFilename
-			: synthesizedAudioFilename.replace(/public/, "");
-
-		
-		const synthesizedAudioBlob = await fetch(synthesizedAudioURL)
-		      .then(response => response.blob());
-
-		props.updateStatusCallback("_statusPlayingSynthesizedResult_");		    
-		props.playAudioBlobCallback(synthesizedAudioBlob);
-
-	    }
-	}
-	catch (error) {
-	    console.log(error);
-	}
-    };
-
-    
-    const getPromptResponse = async (promptText) => {
-	//props.updateStatusCallback("Recognised text being processed by " + props.configOptionsRef.current.chatLLM);
-	props.updateStatusCallback("_statusChatLLMProcessing_");
-		    
-	//console.log("**** getPromptResponse");
-	//console.log("     " + props.messagesRef.current);
-	
-	try {
-	    const response = await fetch("/api/chatLLM", {
-		method: "POST",
-		headers: {
-		    "Content-Type": "application/json",
-		},
-		body: JSON.stringify({
-		    configOptions: props.configOptionsRef.current,
-		    //messages: JSON.parse(props.messages),
-		    messages: props.messagesRef.current,
-		    // //messages: messages,
-		    promptText: promptText
-		}),
-	    }).then((res) => {
-		let json_str = null;
-		if (res.status == 200) {
-		    json_str = res.json();
-		}
-		return json_str;
-	    });
-
-	    
-	    if (response != null) {
-		// The returned top message from ChatLMM
-		const result_message_pair = response.result;
-		console.log(result_message_pair);
-		const chatResponseText = result_message_pair.returnedTopMessage.content;	    
-		//props.updateStatusCallback(props.configOptionsRef.current.chatLLM + "'s response received");
-		props.updateStatusCallback("_statusChatLLMResponseReceived_");
-		props.updateMessagesCallback(result_message_pair);
-		
-		//setText(props.configOptionsRef.current.chatLLM + " says: " + chatResponseText); // ****
-		const lang = props.configOptionsRef.current.lang;
-		const lang_llm_says = props.configOptionsRef.current.interfaceText["_LLMSays_"][lang];
-		//setText(lang_llm_says + ": " + chatResponseText); // ****
-		setText(lang_llm_says + "" + chatResponseText); // ****
-		
-		getSynthesizedSpeech(chatResponseText);		
-	    }
-	    else {		
-		//setText("No response received from " + props.configOptionsRef.current.chatLLM);
-		//props.updateStatusCallback("No response received from " + props.configOptionsRef.current.chatLLM);
-
-		const lang = props.configOptionsRef.current.lang;
-		const lang_llm_no_response = props.configOptionsRef.current.interfaceText["_statusChatLLMNoResponseReceived_"][lang];
-		setText(lang_llm_no_response);
-		props.updateStatusCallback("_statusChatLLMNoResponseReceived_");		
-	    }
-	    
-	}
-	catch (error) {
-	    const lang = props.configOptionsRef.current.lang;
-	    const lang_ti_network_error = props.configOptionsRef.current.interfaceText["_textInfoNetworkError_"][lang];
-	    setText(lang_ti_network_error);
-	    props.updateStatusCallback("_statusNetworkError_");
-	    
-	    console.error(error);
-	}
-    };
-    
-    
-    const getText = async (blob, base64data, mimeType) => {
-	props.updateStatusCallback("_statusSpeechToTextProcessing_");
-	
-	try {
-	  const response = await fetch("/api/speechToText", {
-              method: "POST",
-              headers: {
-		  "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-		  audio: base64data,
-		  mimeType: mimeType,
-		  configOptions: props.configOptionsRef.current
-              }),
-	  }).then((res) => {
-	      let json_str = null;
-	      if (res.status == 200) {
-		  json_str = res.json();
-	      }
-	      return json_str;
-	  });
-
-	  if (response != null) {
-	      const { text } = response.recognizedTextData;
-	      //const audioFilename  = response.recordedAudioFilename;
-
-	      const lang = props.configOptionsRef.current.lang;
-	      const lang_ti_recognised = props.configOptionsRef.current.interfaceText["_textInfoRecognisedTextSpoken_"][lang];	      
-	      setText(lang_ti_recognised+": " + text);
-	      
-	      props.updateStatusCallback("_statusSpeechToTextCompleted_");
-	      
-	      //setAudioFilename(audioFilename);
-	      // Do the following line if you want the audio to be played
-	      //props.pageAudioFilenameCallback(audioFilename,blob,mimeType);
-	      //props.playAudioBlobCallback(blob);
-	     
-
-		//  TEMP: ignore STT result and send a fixed prompt to Claude
-     		//  const testPrompt =
-	        // "whakahoki kupu poto";
-    		//  getPromptResponse(testPrompt);
- 
-	      // Now ask ChatLLM to respond to the recognised text
-	      getPromptResponse(text);
-	  }
-      }
-      catch (error) {
-	  console.error(error);
-      }
-  };
-
 /*
   const blobToBase64Async = (blob, callback) => {
       const reader = new FileReader();
@@ -403,7 +248,7 @@ export const useRecordVoice = (props) => {
 	});
     }
     */
-
+/*
   const blobToBase64Promise = blob => {
       const reader = new FileReader();
       reader.readAsDataURL(blob);
@@ -414,7 +259,7 @@ export const useRecordVoice = (props) => {
       });
   };
     
-    
+  */  
   const initializeMediaRecorder = (initStream) => {
 
       if (mediaRecorder === null) {
