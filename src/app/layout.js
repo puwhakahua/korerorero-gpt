@@ -1,6 +1,10 @@
 import { Inter } from 'next/font/google'
 import './globals.css'
 
+import { initProxy } from "@/lib/init-proxy";
+
+initProxy();
+
 const inter = Inter({ subsets: ['latin'] })
 
 export default function RootLayout({ children }) {
