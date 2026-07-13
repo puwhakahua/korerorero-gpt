@@ -1,16 +1,17 @@
 
-//callback - where we want to get result
-const blobToBase64 = (blob, callback) => {
-    console.log("**** blobToBase64(blob,callback)")
-    console.log(blob)
-    
-    const reader = new FileReader();
-    reader.onload = function () {
-	const type = blob.type;
-	const base64data = reader?.result?.split(",")[1];
-	callback(blob,base64data,type);
-    };
-    reader.readAsDataURL(blob);
-};
+export function blobToBase64(blob) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
 
-export { blobToBase64 };
+        reader.onloadend = () => {
+	    //resolve(reader.result);
+	    const dataUrl = reader.result;
+	    // strip prefix
+	    const base64 = dataUrl.split(",")[1];
+	    resolve (base64);
+	};
+        reader.onerror = reject;
+
+        reader.readAsDataURL(blob);
+    });
+}
