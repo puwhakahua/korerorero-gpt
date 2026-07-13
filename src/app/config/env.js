@@ -1,7 +1,12 @@
+
 export const env = {
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
     PAPAREO_API_KEY: process.env.PAPAREO_API_KEY,
     HF_TOKEN_KINGSLEYENG: process.env.HF_TOKEN_KINGSLEYENG,
     HF_TOKEN_WMAI_RESEARCH: process.env.HF_TOKEN_WMAI_RESEARCH,
     PUWHAKAHUA_API_KEY: process.env.PUWHAKAHUA_API_KEY,
+    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
 };
+
+export const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || "";
