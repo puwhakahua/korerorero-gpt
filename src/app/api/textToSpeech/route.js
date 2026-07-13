@@ -10,8 +10,8 @@ import { env } from "../../config/env";
 
 import OpenAI from "openai";
 
-import { sleep, postPapaReoSynthesize, downloadURL } from "../utils";
-
+import { sleep, postPapaReoSynthesize, downloadURL, STORE_PATH } from "../utils";
+import { URLs } from "@/utils/createURLs";
 
 // test?
 import { spawn } from "child_process";
@@ -19,6 +19,7 @@ import { spawn } from "child_process";
 // test for key
 import { Readable } from "stream";
 import { finished } from "stream/promises";
+
 
 // test
 // Force Node runtime for fs/path/tmp/etc.
@@ -28,6 +29,9 @@ export const dynamic = "force-dynamic";
 // Give long jobs (Space queue) more time if you deploy to serverless
 export const maxDuration = 60; // seconds
 
+// in case there is a proxy
+import { initProxy } from "@/lib/init-proxy";
+initProxy();
 
 dotenv.config();
 
@@ -44,7 +48,7 @@ const puwhakahua_url = "https://api.puwhakahua.nz/synthesize";
 async function POST_FAKE(body) {
 
     const response_data = {
-	synthesizedAudioFilename: path.join("public","tmp","fake-synthesized-audio.mp3"),
+	synthesizedAudioURL: URLs.tmp("fake-synthesized-audio.mp3"),
 	synthesizedAudioBlob: null
     };
 
@@ -70,23 +74,19 @@ async function POST_PUWHAKAHUA(body) {
     }
 
     const audioFileType = "wav";
+    const audioFileExt  = "." + audioFileType;
     const audioMimeType = "audio/wav";
-  
-    // Make sure we write inside public/tmp so the browser can GET /tmp/...
-    const tmpDirAbs = path.join(process.cwd(), "public", "tmp");
-    if (!fs.existsSync(tmpDirAbs)) {
-      fs.mkdirSync(tmpDirAbs, { recursive: true });
-    }
   
     // Absolute file path for saving + corresponding web path we return to the client
     const audioFilePathAbs = tmp.tmpNameSync({
-      tmpdir: tmpDirAbs,
-      prefix: "synthesized-audio--",
-      postfix: "." + audioFileType,
-      keep: true,
+	tmpdir: STORE_PATH, 
+	prefix: "synthesized-audio--",
+	postfix: audioFileExt,
+	keep: true,
     });
-    const audioWebPath = "/tmp/" + path.basename(audioFilePathAbs);
-
+  //  const audioWebPath = "/tmp/" + path.basename(audioFilePathAbs);
+    const audioWebPath = URLs.tmp(path.basename(audioFilePathAbs));
+				
     console.log (`audiowebpath ${audioWebPath}, ${puwhakahua_url}`);
     const response = await fetch(puwhakahua_url, {
 	method: "POST",
@@ -115,7 +115,7 @@ async function POST_PUWHAKAHUA(body) {
     
     // Return the web path (NOT the absolute filesystem path)
     return NextResponse.json({
-        synthesizedAudioFilename: audioWebPath,
+        synthesizedAudioURL: audioWebPath,
         synthesizedAudioMimeType: audioMimeType,
     });
 }
@@ -128,23 +128,23 @@ async function POST_PAPAREO(body) {
     const audioMimeType = "audio/mpeg";
   
     // 1) Absolute filesystem dir to write into (served by Next.js as /tmp/*)
-    const tmpDirAbs = path.join(process.cwd(), "public", "tmp");
+    //const tmpDirAbs = path.join(process.cwd(), "public", "tmp");
   
     // 2) Ensure directory exists
-    if (!fs.existsSync(tmpDirAbs)) {
-      console.log("Creating temporary directory for audio recording:", tmpDirAbs);
-      fs.mkdirSync(tmpDirAbs, { recursive: true });
-    }
+    //if (!fs.existsSync(tmpDirAbs)) {
+    //  console.log("Creating temporary directory for audio recording:", tmpDirAbs);
+    //  fs.mkdirSync(tmpDirAbs, { recursive: true });
+   // }
   
     // 3) Build absolute output filename and the corresponding web path
     const audioFilePathAbs = tmp.tmpNameSync({
-      tmpdir: tmpDirAbs,
+	tmpdir: STORE_PATH, //tmpDirAbs,
       prefix: "synthesized-audio--",
       postfix: audioFileExt,
       keep: true,
     });
-    const audioWebPath = "/tmp/" + path.basename(audioFilePathAbs);
-  
+    //const audioWebPath = "/tmp/" + path.basename(audioFilePathAbs);
+    const audioWebPath = URLs.tmp(path.basename(audioFilePathAbs));
     console.log("POST_PAPAREO() -> audioFilePathAbs:", audioFilePathAbs);
     console.log("POST_PAPAREO() -> audioWebPath    :", audioWebPath);
   
@@ -162,7 +162,7 @@ async function POST_PAPAREO(body) {
   
       // 6) Return the web path for the browser to fetch
       return NextResponse.json({
-        synthesizedAudioFilename: audioWebPath,   // e.g. "/tmp/synthesized-audio--abc123.mp3"
+        synthesizedAudioURL: audioWebPath,   // e.g. "/api/audio/synthesized-audio--abc123.mp3"
         synthesizedAudioMimeType: audioMimeType,
       });
     } catch (error) {
@@ -177,31 +177,31 @@ async function POST_OPENAI(body) {
     const text = body.text;
     
     const audioFileType = "mp3";
-    const audioFileExt  = "."+audioFileType
+    const audioFileExt  = "."+audioFileType;
     const audioMimeType = "audio/mpeg";
     
-    const tmpDir        = path.join("public","tmp");
+//    const tmpDir        = path.join("public","tmp");
     //const pid           = process.pid;
 
-    const tmpOptions = {
-	tmpdir: tmpDir,
+    const audioFilePathAbs = tmp.tmpNameSync({
+	tmpdir: STORE_PATH, //tmpDir,
 	//prefix: `synthesized-audio-${pid}--`,
 	prefix: `synthesized-audio--`,
 	postfix: audioFileExt,
 	keep: true
-    };
-        
-    const audioFilePathOLD = path.join(tmpDir,"synthesized-audio"+audioFileExt);
-    const audioFilePath = tmp.tmpNameSync(tmpOptions).replace(process.cwd()+"/","");
+    });
+    const audioWebPath = URLs.tmp(path.basename(audioFilePathAbs));
+    //const audioFilePathOLD = path.join(tmpDir,"synthesized-audio"+audioFileExt);
+    //const audioFilePath = tmp.tmpNameSync(tmpOptions).replace(process.cwd()+"/","");
     
-    console.log(`audioFilePathOLD = ${audioFilePathOLD}`);
-    console.log(`audioFilePath    = ${audioFilePath}`);
+    //console.log(`audioFilePathOLD = ${audioFilePathOLD}`);
+    //console.log(`audioFilePath    = ${audioFilePath}`);
     
     try {
-	if (!fs.existsSync(tmpDir)) {
-	    console.log("Creating temporary directory for audio recording: " + tmpDir);
-	    fs.mkdirSync(tmpDir);
-	}
+//	if (!fs.existsSync(tmpDir)) {
+//	    console.log("Creating temporary directory for audio recording: " + tmpDir);
+//	    fs.mkdirSync(tmpDir);
+//	}
 	
 	// Based on:
 	//    https://platform.openai.com/docs/guides/text-to-speech?lang=node
@@ -225,7 +225,7 @@ async function POST_OPENAI(body) {
 	
 	const buffer = Buffer.from(await audio.arrayBuffer());
 	console.log(`Saving synthesized audio as: ${audioFilePath}`);
-	await fs.promises.writeFile(audioFilePath, buffer);
+	await fs.promises.writeFile(audioFilePathAbs, buffer);
 
 	const audioBlob = new Blob([buffer], { type: "audio/mpeg"});
 	//const audioBlob = audio.blob;
@@ -235,7 +235,7 @@ async function POST_OPENAI(body) {
 	console.log(audioBlob);
 		    
 	const response_data = {
-	    synthesizedAudioFilename: audioFilePath,
+	    synthesizedAudioURL: audioWebPath,
 	    //synthesizedAudioBlob:     audioBlob,
 	    synthesizedAudioMimeType: audioMimeType
 	};
@@ -287,23 +287,25 @@ async function MAORI_TTS_HUGGING_FACE(body, hfUrl, hfToken) {
     }
   
     const audioFileType = "wav";
+    const audioFileExt  = "." + audioFileType;
     const audioMimeType = "audio/wav";
   
     // Make sure we write inside public/tmp so the browser can GET /tmp/...
-    const tmpDirAbs = path.join(process.cwd(), "public", "tmp");
-    if (!fs.existsSync(tmpDirAbs)) {
-      fs.mkdirSync(tmpDirAbs, { recursive: true });
-    }
+   // const tmpDirAbs = path.join(process.cwd(), "public", "tmp");
+   // if (!fs.existsSync(tmpDirAbs)) {
+   //   fs.mkdirSync(tmpDirAbs, { recursive: true });
+    //}
   
     // Absolute file path for saving + corresponding web path we return to the client
     const audioFilePathAbs = tmp.tmpNameSync({
-      tmpdir: tmpDirAbs,
+	tmpdir: STORE_PATH, //tmpDirAbs,
       prefix: "synthesized-audio--",
-      postfix: "." + audioFileType,
+      postfix: audioFileExt,
       keep: true,
     });
-    const audioWebPath = "/tmp/" + path.basename(audioFilePathAbs);
-  
+    
+    //const audioWebPath = "/tmp/" + path.basename(audioFilePathAbs);
+    const audioWebPath = URLs.tmp(path.basename(audioFilePathAbs));
     try {
       // Connect to your Space
 	const app = await gradioClient(hfUrl,
@@ -341,7 +343,7 @@ async function MAORI_TTS_HUGGING_FACE(body, hfUrl, hfToken) {
   
       // Return the web path (NOT the absolute filesystem path)
       return NextResponse.json({
-        synthesizedAudioFilename: audioWebPath,
+        synthesizedAudioURL: audioWebPath,
         synthesizedAudioMimeType: audioMimeType,
       });
     } catch (err) {
@@ -383,7 +385,8 @@ async function POST_PIPER(body) {
     return NextResponse.json({ error: "empty_text" }, { status: 400 });
   }
 
-  const audioFileType = "wav";
+    const audioFileType = "wav";
+    const audioFileExt  = "." + audioFileType;
   const audioMimeType = "audio/wav";
 
   
@@ -391,19 +394,20 @@ async function POST_PIPER(body) {
   const speechSpeed = 1.2;
 
   // Ensure tmp directory exists
-  const tmpDirAbs = path.join(process.cwd(), "public", "tmp");
-  if (!fs.existsSync(tmpDirAbs)) {
-    fs.mkdirSync(tmpDirAbs, { recursive: true });
-  }
+//  const tmpDirAbs = path.join(process.cwd(), "public", "tmp");
+ // if (!fs.existsSync(tmpDirAbs)) {
+  //  fs.mkdirSync(tmpDirAbs, { recursive: true });
+  //}
 
   const audioFilePathAbs = tmp.tmpNameSync({
-    tmpdir: tmpDirAbs,
+      tmpdir: STORE_PATH, //tmpDirAbs,
     prefix: "synthesized-local--",
-    postfix: "." + audioFileType,
+    postfix: audioFileExt,
     keep: true,
   });
-  const audioWebPath = "/tmp/" + path.basename(audioFilePathAbs);
-
+    
+ // const audioWebPath = "/tmp/" + path.basename(audioFilePathAbs);
+    const audioWebPath = URLs.tmp(path.basename(audioFilePathAbs));
   try {
     const isWindows = process.platform === "win32";
 
@@ -430,7 +434,7 @@ async function POST_PIPER(body) {
     });
 
     return NextResponse.json({
-      synthesizedAudioFilename: audioWebPath,
+      synthesizedAudioURL: audioWebPath,
       synthesizedAudioMimeType: audioMimeType,
     });
 

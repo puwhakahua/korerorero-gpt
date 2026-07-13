@@ -7,9 +7,15 @@ import tmp from "tmp";
 import * as dotenv from "dotenv";
 import { env } from "../../config/env";
 
+// in case there is a proxy
+import { initProxy } from "@/lib/init-proxy";
+initProxy();
+
 import OpenAI from "openai";
 
-import { sleep, postPapaReoTranscribe } from "../utils";
+import { sleep, postPapaReoTranscribe, STORE_PATH } from "../utils";
+import { URLs } from "@/utils/createURLs";
+
 
 dotenv.config();
 
@@ -21,7 +27,7 @@ async function POST_FAKE(body) {
     const response_data = {
 	//recognizedTextData: { text: 'What is the name of the river that flows through Hamilton, New Zealand?' },
 	recognizedTextData: { text: 'He aha te ingoa o te awa e rere ana i Kirikiriroa, Aotearoa?' }, 
-	recordedAudioFilename: 'public/tmp/spoken-audio.webm'
+	recordedAudioFilename: URLs.tmp("spoken-audio.webm")
     };
 
     return NextResponse.json(response_data);
@@ -40,38 +46,38 @@ async function POST_PAPAREO(body) {
     //   audio/webm;codecs=opus    
     
     const fileExt  = audioMimeType.replace(/^\w+\/(\w+)(?:;.+)?$/,".$1");    
-    const tmpDir   = path.join("public","tmp");
+    //const tmpDir   = path.join("public","tmp");
 
-    const tmpOptions = {
-	tmpdir: tmpDir,
+    const audioFilePathAbs = tmp.tmpNameSync({
+	tmpdir: STORE_PATH,
 	prefix: `spoken-audio--`,
 	postfix: fileExt,
 	keep: true
-    };
+    });
     
     //const filePathOLD = path.join(tmpDir,"spoken-audio"+fileExt);
-    const filePath = tmp.tmpNameSync(tmpOptions).replace(process.cwd()+"/","");
+    //const filePath = tmp.tmpNameSync(tmpOptions).replace(process.cwd()+"/","");
     
     console.log(`audioMimeType = ${audioMimeType}`);
     console.log(`fileExt = ${fileExt}`);
     
     try {
 
-	if (!fs.existsSync(tmpDir)) {
-	    console.log("Creating temporary directory for audio recording: " + tmpDir);
-	    fs.mkdirSync(tmpDir);
-	}
+//	if (!fs.existsSync(tmpDir)) {
+//	    console.log("Creating temporary directory for audio recording: " + tmpDir);
+//	    fs.mkdirSync(tmpDir);
+//	}
+//	
 	
-	
-	fs.writeFileSync(filePath, audio);
+	fs.writeFileSync(audioFilePathAbs, audio);
 
-	const transcription_text = await postPapaReoTranscribe(filePath, audioMimeType);
+	const transcription_text = await postPapaReoTranscribe(audioFilePathAbs, audioMimeType);
 	
 	// Remove the file after use
 	console.log("Supressing deletion of audio file");
-	//fs.unlinkSync(filePath);
+	//fs.unlinkSync(audioFilePathAbs);
 
-	const response_data = { recognizedTextData: {text: transcription_text}, recordedAudioFilename: filePath };
+	const response_data = { recognizedTextData: {text: transcription_text}, recordedAudioFilename: audioFilePathAbs };
 	console.log(response_data);
 	return NextResponse.json(response_data);
     }
@@ -92,31 +98,35 @@ async function POST_OPENAI(body) {
     //   audio/webm;codecs=opus    
     
     const fileExt  = audioMimeType.replace(/^\w+\/(\w+)(?:;.+)?$/,".$1");    
-    const tmpDir   = path.join("public","tmp");
+    //const tmpDir   = path.join("public","tmp");
 
-    const tmpOptions = {
-	tmpdir: tmpDir,
+    const audioFilePathAbs = tmp.tmpNameSync ({
+	tmpdir: STORE_PATH,
 	prefix: `spoken-audio--`,
 	postfix: fileExt,
 	keep: true
-    };
+    });
     
     //const filePathOLD = path.join(tmpDir,"spoken-audio"+fileExt);
-    const filePath = tmp.tmpNameSync(tmpOptions).replace(process.cwd()+"/","");
+    //const filePath = tmp.tmpNameSync(tmpOptions).replace(process.cwd()+"/","");
     
     console.log(`audioMimeType = ${audioMimeType}`);
     console.log(`fileExt = ${fileExt}`);
     
     try {
 
-	if (!fs.existsSync(tmpDir)) {
-	    console.log("Creating temporary directory for audio recording: " + tmpDir);
-	    fs.mkdirSync(tmpDir);
-	}
-	
-	
-	fs.writeFileSync(filePath, audio);
-	const readStream = fs.createReadStream(filePath);
+//	if (!fs.existsSync(tmpDir)) {
+//	    console.log("Creating temporary directory for audio recording: " + tmpDir);
+//	    fs.mkdirSync(tmpDir);
+//	}
+
+	console.log ("speech to text audio path ", audioFilePathAbs);
+	fs.writeFileSync(audioFilePathAbs, audio);
+//	const stats = fs.statSync(audioFilePathAbs);
+//	console.log(stats.size);
+
+	const readStream = fs.createReadStream(audioFilePathAbs);
+	console.log("calling openai");
 	const data = await openai.audio.transcriptions.create({
 	    file: readStream,
 	    model: "whisper-1",
@@ -124,9 +134,9 @@ async function POST_OPENAI(body) {
 	
 	// Remove the file after use
 	console.log("Supressing deletion of audio file");
-	//fs.unlinkSync(filePath);
+	//fs.unlinkSync(audioFilePathAbs);
 
-	const response_data = { recognizedTextData: data, recordedAudioFilename: filePath };
+	const response_data = { recognizedTextData: data, recordedAudioFilename: audioFilePathAbs };
 
 	return NextResponse.json(response_data);
     }

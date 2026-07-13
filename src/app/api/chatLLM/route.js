@@ -6,31 +6,29 @@ import path from "path";
 import * as dotenv from "dotenv";
 import { env } from "../../config/env";
 
-import { OpenAI } from "openai";
-import Anthropic from '@anthropic-ai/sdk';
+// in case there is a proxy
+import { initProxy } from "@/lib/init-proxy";
+initProxy();
 
-import { sleep } from "../utils";
+
+//import { OpenAI } from "openai";
+//import { Anthropic } from '@anthropic-ai/sdk';
+
+import { sleep, postAnthropicMessage, postOpenAIMessage, postOpenRouterMessage } from "../utils";
+
 
 dotenv.config();
 
+/*
 const openai = new OpenAI({
     apiKey: env.OPENAI_API_KEY,
 });
 
-const anthropic = new Anthropic({
-  apiKey: process.env['ANTHROPIC_API_KEY'], // This is the default and can be omitted
-});
-
-/*
-
-const msg = await anthropic.messages.create({
-  model: "claude-3-opus-20240229",
-  max_tokens: 1024,
-  messages: [{ role: "user", content: "Hello, Claude how are you today?" }],
-});
-console.log(msg);
+const openrouter = new OpenAI( {
+  baseURL: 'https://openrouter.ai/api/v1',	
+  apiKey: env.OPENROUTER_API_KEY,
+} );
 */
-
 
 
 async function POST_FAKE(body) {
@@ -74,8 +72,17 @@ function OLD() {
 }
 */
 
+ 
 async function POST_OPENAI(body) {
 
+    return POST_GENERIC_OPENAI(body, "openai");
+}
+
+async function POST_OPENROUTER(body) {
+    return POST_GENERIC_OPENAI(body, "openrouter");
+}
+
+async function POST_GENERIC_OPENAI(body, chat_server) {
     const messages   = body.messages;
     const promptText = body.promptText;
 
@@ -92,13 +99,29 @@ async function POST_OPENAI(body) {
     const updatedMessages = [...messages, newUserMessage];
     
     try {
+	// this may not work if we need to use a proxy 
+	/*
 	const completion = await openai.chat.completions.create({
 	    //model: "gpt-4-turbo-preview",	    
 	    model: "gpt-4",
+	    //model: "openrouter/free",
 	    messages: updatedMessages,
 	    temperature: 0,
 	});
+	*/
 
+	let completion;
+	switch(chat_server) {
+	case "openrouter":
+	    completion =  await postOpenRouterMessage("openrouter/free", updatedMessages, 0);
+	    break;
+	    
+	case "openai":
+	default:
+	    completion =  await postOpenAIMessage("gpt-4", updatedMessages, 0);
+	    break;
+	}
+	
 	const returnedTopMessage = completion.choices[0].message;
 	
 	const response_data = { result: { userMessage: newUserMessage, returnedTopMessage: returnedTopMessage} };
@@ -107,24 +130,28 @@ async function POST_OPENAI(body) {
 	return NextResponse.json(response_data);	
     }
     catch (error) {
-	console.error("Error getting response from " + props.routerOptions.chatLLM + " to promptText:", error);
+	console.error("Error getting response from " + chat_server + " to promptText:", error);
 	return NextResponse.error();
     }    
 }
 
-
+/*
+const anthropic = new Anthropic({
+  apiKey: env.ANTHROPIC_API_KEY, 
+});
+*/
 async function POST_CLAUDE(body)
 {
 
     const messages   = body.messages;
     const promptText = body.promptText;
 
-    /*
+    
     console.log("[ChatLLM route.js] messages:");
     console.log(messages);
 		
     console.log(`promptText = ${promptText}`);
-    */
+    
     
     const newUserMessage = {
 	role: "user",
@@ -144,20 +171,21 @@ async function POST_CLAUDE(body)
 
     
     try {
-	const message = await anthropic.messages.create({
+	// this didn't work with a proxy
+	/*	const message = await anthropic.messages.create({
 	    //model: 'claude-3-opus-20240229',
 	    model: 'claude-opus-4-6',
 	    max_tokens: 1024,
 	    messages: updatedMessages,
 	});
-
-	//console.log(message.content);
+*/
+	const message = await postAnthropicMessage("claude-opus-4-6", updatedMessages, 1024);
 	
 	const returnedTopMessage = { role: "assistant", content: message.content[0].text }
 	
 	const response_data = { result: { userMessage: newUserMessage, returnedTopMessage: returnedTopMessage} };
-	//console.log("Response data:");
-	//console.log(response_data);
+	console.log("Response data:");
+	console.log(response_data);
 	
 	return NextResponse.json(response_data);	
     }
@@ -172,7 +200,8 @@ async function POST_CLAUDE(body)
 const PostLookup = {
     "fake"      : POST_FAKE,
     "Claude"    : POST_CLAUDE,
-    "OpenAI"    : POST_OPENAI
+    "OpenAI"    : POST_OPENAI,
+    "OpenRouter": POST_OPENROUTER,
 };
 
     
