@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef  } from 'react';
 
 import { useRecordVoice } from "@/hooks/useRecordVoice";
+import { getSynthesizedSpeech } from "@/lib/conversation";
 
 import { MicrophoneModeEnum,  Microphone  } from "@/app/components/Microphone";
 import { AudioPlayerModeEnum, AudioPlayer } from "@/app/components/AudioPlayer";
@@ -15,6 +16,18 @@ const InterfaceText = {
     _howCanIHelp_: {
 	"en": "How can I help?",
 	"mi": "Kōrero mai ..."
+    },
+    _enterText_: {
+	"en": "Please enter some text which I will speak back to you... then click Listen",
+	"mi": "Tēnā koa, whakaurua mai he kupu, he kōrero rānei hei whakahoki māku ki a koe... kātahi ka pāwhiri i te pātene Whakarongo"
+    },
+    _typeText_: {
+	"en": "Type your message here",
+	"mi": "Tuhia tō karere ki konei"
+    },
+    _listen_: {
+	"en": "Listen",
+	"mi": "Whakarongo"
     },
     _microphoneInstructions_: {
 	"en": "Press and hold the microphone button to record.",
@@ -127,7 +140,10 @@ const DefaultConfigOptions = {
     //chatLLM      : "OpenAI",
     //textToSpeech : "OpenAI",
     speechToText : "PapaReo",
+    //speechToText: "fake",
+    //chatLLM : "fake",
     chatLLM      : "Claude",
+    //chatLLM   : "OpenRouter",
     //textToSpeech : "PapaReo",
     textToSpeech : "MaoriTTSW",
 
@@ -162,12 +178,13 @@ export default function Home()
 
     const [messages, setMessages] = useState([
         { role: "system",    content: "You are a helpful assistant" },
-        { role: "assistant", content: "How can I you today?" }
+        { role: "assistant", content: "How can I help you today?" }
     ]);
 
+    const [enteredText, setEnteredText] = useState('');
     const configOptionsRef = useRef(DefaultConfigOptions); // Currently, a generic object/hashmap
     const messagesRef      = useRef(null);    
-    const mediaPlayer      = useRef(null); // <MediaPlayer>
+    const mediaPlayer      = useRef(null);
     
     const mediaPlayerWidth     = 400;
     const mediaPlayerHeight    = 132;
@@ -175,7 +192,7 @@ export default function Home()
 
     const interfaceWidth = mediaPlayerWidth + audioControllerWidth;
     
-    
+
     useEffect(() => {
 	if (mediaPlayer.current === null) {
 	    
@@ -222,17 +239,19 @@ export default function Home()
 	if (blob !== null) {
 	    console.log(`[page.js] useEffect() [blob] non-null blob => setting mediaPlayer.state to "playing"`);
             setInterfaceMode(InterfaceModeEnum.playing);
-	    mediaPlayer.current.state = "playing";
-
+	    if (mediaPlayer.current) {console.log("mediaplayer current, set state to playing"); mediaPlayer.current.state = "playing";}
+	    else {console.log("media player not current");}
             // Take a copy of the blob so the audio player can start/stop playing it
 	    console.log("**** !!!! setting apBlob to copy of 'blob'")
 	    console.log(blob)
-            setAudioPlayerBlob(blob);
+	    console.log(blob.type);
+	    console.log(blob.size);   
+	    setAudioPlayerBlob(blob);
 	}
 	else {
 	    console.log(`[page.js] useEffect() [blob] blob is null  => setting mediaPlayer.state to "inactive"`);
             setInterfaceMode(InterfaceModeEnum.inactive);            
-	    mediaPlayer.current.state = "inactive";
+	    if (mediaPlayer.current) {mediaPlayer.current.state = "inactive";}
 	}
     }, [blob]);
 
@@ -278,7 +297,7 @@ export default function Home()
 
     const handleAudioPauseToggle = () => {
         console.log("handleAudioPauseToggle()");
-        if (mediaPlayer.current.state === "playing") {
+        if (mediaPlayer.current?.state === "playing") {
             mediaPlayer.current.state = "paused";
 	    updateStatus("_statusAudioPlayerPaused_");
         }
@@ -290,7 +309,7 @@ export default function Home()
 
     const handleAudioPlay = () => {
         console.log("handleAudioPlay()");
-        if (mediaPlayer.current.state !== "playing") {
+        if (mediaPlayer.current?.state !== "playing") {
             mediaPlayer.current.state = "playing";
 	    updateStatus("_statusAudioPlayerPlaying_");
             
@@ -303,7 +322,7 @@ export default function Home()
 
     const handleAudioStop = () => {
         console.log("handleAudioStop()");
-        if ((mediaPlayer.current.state === "playing") || (mediaPlayer.current.state === "paused")) {
+        if ((mediaPlayer.current?.state === "playing") || (mediaPlayer.current?.state === "paused")) {
             mediaPlayer.current.state = "inactive";
 	    updateStatus("_statusAudioPlayerStopped_");
             
@@ -387,6 +406,17 @@ const playAudioBlobCallback = (callbackBlob) => {
     }
 ;
     const lang_HowCanIHelp = configOptionsRef.current.interfaceText["_howCanIHelp_"][Lang];
+    const lang_listen = configOptionsRef.current.interfaceText["_listen_"][Lang];
+    const lang_enterText = configOptionsRef.current.interfaceText["_enterText_"][Lang];
+    const lang_typeText = configOptionsRef.current.interfaceText["_typeText_"][Lang];
+    const conversation_context = {
+	configOptionsRef, updateStatusCallback: updateStatus };
+    const handleClick = async () => {
+	console.log("entered text = ", enteredText);
+	const synthesizedAudioBlob = await getSynthesizedSpeech(conversation_context, enteredText);
+	playAudioBlobCallback(synthesizedAudioBlob);
+	
+    };
     
     return (
 	    <main className="flex min-h-screen flex-col items-center justify-center">
@@ -475,8 +505,7 @@ const playAudioBlobCallback = (callbackBlob) => {
                     <option value="MaoriTTSW">WM-TTS (WMAI Research)</option>
                     <option value="Puwhakahua">Puwhakahua</option>
                     <option value="PapaReo">PapaReo</option>
-                    <option value="MaoriTTSK">WM-TTS (KingsleyEng)</option>
-	   	    <option value="Piper">Piper (Local)</option>
+		    <option value="Piper">Piper (Local)</option>
                 </select>
             </div>
 
@@ -490,7 +519,30 @@ const playAudioBlobCallback = (callbackBlob) => {
 	            playAudioBlobCallback={playAudioBlobCallback}
                     updateMessagesCallback={updateMessagesCallback}
 	          />
-                </div>
+
+		    <div className="textmessage pb-2"
+			 style={{
+			     width: interfaceWidth+"px",
+			     display: "flex",
+			     justifyContent: "space-between",
+			     alignItems: "center",
+			 }}
+		    >                                                  
+                    <span>{lang_enterText}</span>                                                                                                      
+			<button onClick={handleClick} className="listenButton">{lang_listen}</button>
+                    </div> 
+		    <div>
+			<textarea
+			    rows={5}
+			    cols={50}
+			    value={enteredText}
+			    onChange={(e) => setEnteredText(e.target.value)}
+			    placeholder={lang_typeText}
+			/>
+
+
+		    </div>
+		</div>
 	      </div>
 	    </main>
   );
