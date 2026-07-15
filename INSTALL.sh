@@ -11,8 +11,11 @@ echo "nvm: $(command -v nvm)"
 
 echo "***Get nodejs version 20"
 nvm install 20
+
 echo "***Switch to use version 20"
-nvm use 20
+#nvm use 20
+nvm alias default 20
+
 # use nodejs package manager to install pm2. -g installs it for the nodejs version, rather than for a current project
 echo "***Install pm2 into nodejs 20"
 npm install -g pm2
