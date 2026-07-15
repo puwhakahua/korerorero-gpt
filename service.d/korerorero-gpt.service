@@ -1,0 +1,25 @@
+[Unit]
+Description=PM2 Process Manager for korerorero-gpt
+After=network.target
+
+[Service]
+Type=forking
+
+User=nzdl
+Group=nzdl
+
+WorkingDirectory=/greenstone/korerorero-gpt
+
+Environment=PM2_HOME=/home/nzdl/.pm2
+Environment=NVM_DIR=/greenstone/korerorero-gpt/nvm
+
+PIDFile=/home/nzdl/.pm2/pm2.pid
+
+ExecStart=/bin/bash -lc '. /greenstone/korerorero-gpt/SETUP.sh && pm2 resurrect'
+ExecReload=/bin/bash -lc '. /greenstone/korerorero-gpt/SETUP.sh && pm2 reload all'
+ExecStop=/bin/bash -lc '. /greenstone/korerorero-gpt/SETUP.sh && pm2 kill'
+
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
