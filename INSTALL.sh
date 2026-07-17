@@ -26,7 +26,9 @@ pm2 update
 echo "*** Install packages for the current project"
 npm install
 
-echo "*** Please create .env and set the relevant keys."
+echo "*** Copy .env.in to .env"
+cp .env.in .env
+echo "*** TODO: Please edit .env and set the relevant keys, and base path"
 
 echo "*** If you want a local Piper, run the following:"
 
