@@ -15,7 +15,7 @@ fi
 
 if [[ -t 1 ]]; then
     echo "nvm: $(command -v nvm)"
-    echo "Changing version of NodeJS used to v20"
+    echo "Changing version of NodeJS used to the default (set by INSTALL.sh)"
 fi
 nvm use default >/dev/null
 
