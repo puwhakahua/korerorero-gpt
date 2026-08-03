@@ -12,8 +12,8 @@ const openai = new OpenAI({
 
 });
 
-//const file = fs.createReadStream("/greenstone/korerorero-gpt/audio-tmp/spoken-audio---1725897-x2WQRIYy3x0S-.ogg");
-const bytes = fs.readFileSync("/greenstone/korerorero-gpt/audio-tmp/fake-spoken-audio.ogg");
+//const file = fs.createReadStream("/atea/korerorero-gpt/audio-tmp/spoken-audio---1725897-x2WQRIYy3x0S-.ogg");
+const bytes = fs.readFileSync("/atea/korerorero-gpt/audio-tmp/fake-spoken-audio.ogg");
 
 const file = new File(
   [bytes],

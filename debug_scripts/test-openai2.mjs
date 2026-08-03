@@ -6,7 +6,7 @@ import { File } from "node:buffer";
 
 console.log("API key present:", !!process.env.OPENAI_API_KEY);
 
-const audio_filename = "/greenstone/korerorero-gpt/audio-tmp/fake-spoken-audio.ogg";
+const audio_filename = "/atea/korerorero-gpt/audio-tmp/fake-spoken-audio.ogg";
 const audio_mimetype = "audio/ogg";
 const bytes = fs.readFileSync(audio_filename);
 const key = process.env.OPENAI_API_KEY;
