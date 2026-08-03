@@ -64,7 +64,7 @@ These are the configuration settings I used on community:
   <Location /korerorero-gpt>
             AuthType Basic
             AuthName "Restricted Area"
-            AuthUserFile /greenstone/httpd/.htpasswd
+            AuthUserFile /atea/httpd/.htpasswd
             Require valid-user
   </Location>
 
@@ -76,10 +76,10 @@ These are the configuration settings I used on community:
 ```
 
 Setup the password file using
-`htpasswd -c /greenstone/httpd/.htpasswd <username>`
+`htpasswd -c /atea/httpd/.htpasswd <username>`
 
 To add another user:
-`htpasswd /greenstone/httpd/.htpasswd <username>`
+`htpasswd /atea/httpd/.htpasswd <username>`
 
 
 

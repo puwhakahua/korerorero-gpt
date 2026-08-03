@@ -8,16 +8,16 @@ Type=forking
 User=nzdl
 Group=nzdl
 
-WorkingDirectory=/greenstone/korerorero-gpt
+WorkingDirectory=/atea/korerorero-gpt
 
 Environment=PM2_HOME=/home/nzdl/.pm2
-Environment=NVM_DIR=/greenstone/korerorero-gpt/nvm
+Environment=NVM_DIR=/atea/korerorero-gpt/nvm
 
 PIDFile=/home/nzdl/.pm2/pm2.pid
 
-ExecStart=/bin/bash -lc '. /greenstone/korerorero-gpt/SETUP.sh && pm2 resurrect'
-ExecReload=/bin/bash -lc '. /greenstone/korerorero-gpt/SETUP.sh && pm2 reload all'
-ExecStop=/bin/bash -lc '. /greenstone/korerorero-gpt/SETUP.sh && pm2 kill'
+ExecStart=/bin/bash -lc '. /atea/korerorero-gpt/SETUP.sh && pm2 resurrect'
+ExecReload=/bin/bash -lc '. /atea/korerorero-gpt/SETUP.sh && pm2 reload all'
+ExecStop=/bin/bash -lc '. /atea/korerorero-gpt/SETUP.sh && pm2 kill'
 
 Restart=on-failure
 
