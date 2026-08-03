@@ -9,8 +9,7 @@ export LD_LIBRARY_PATH="$(pwd)/piper:${LD_LIBRARY_PATH:-}"
 
 
 # Dev server (what Apache is fronting)
-npx next dev -p "$PORT"
+#npx next dev -p "$PORT"
 
 # For production:
-# npm run build
-#PORT=$PORT npm run start
+PORT=$PORT npm run start
